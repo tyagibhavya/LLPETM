@@ -21,6 +21,11 @@ namespace Common {
 
 //  OrderId type to identify orders
   typedef uint64_t OrderId;
+  /* 
+  This code defines an order ID type (OrderId), a constant representing an invalid order ID (INVALID), and a function (orderIdToString) 
+  to convert order IDs to strings. The use of UNLIKELY suggests that invalid order IDs are expected to be uncommon, and the function returns 
+  a specific string for the invalid case. 
+  */
   constexpr auto OrderId_INVALID = std::numeric_limits<OrderId>::max();
 
   inline auto orderIdToString(OrderId order_id) -> std::string {
