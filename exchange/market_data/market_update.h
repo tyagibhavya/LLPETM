@@ -7,7 +7,7 @@ type to represent a lock-free queue of the MEMarketUpdate objects
 #pragma once
 #include<sstream>
 #include "common/types.h"
-using namespace Common ;
+using namespace Common;
 namespace Exchange{
     /*
    The MEMarketUpdate struct also needs to be a packed structure, 
@@ -60,5 +60,8 @@ namespace Exchange{
             << " priority:" << priorityToString(priority_)
             << "]";
         return ss.str();
-    }
+        }
+    };
+#pragma pack(pop)
+    typedef Common::LFQueue<Exchange:MEMarketUpdate> MEMarketUpdateLFQueue;
 }
