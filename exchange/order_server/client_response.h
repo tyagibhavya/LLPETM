@@ -7,6 +7,11 @@ using namespace Common;
 
 namespace Exchange {
 #pragma pack(push, 1)
+/*
+We now try to save space, limit the padding as this is the information that will flow 
+through the channel and we want it to be as small as possible. So we
+avoid padding!
+*/
   enum class ClientResponseType : uint8_t {
     INVALID = 0,
     ACCEPTED = 1,
@@ -15,6 +20,12 @@ namespace Exchange {
     CANCEL_REJECTED = 4
   };
 
+/*
+A ClientResponseType enumeration to represent the type of response for
+client orders. In addition to the INVALID sentinel value, it contains 
+values that represent when a request for a new order is accepted, an order
+is canceled, an order is executed, or a cancel request is rejected by the matching engine
+*/
   inline std::string clientResponseTypeToString(ClientResponseType type) {
     switch (type) {
       case ClientResponseType::ACCEPTED:
