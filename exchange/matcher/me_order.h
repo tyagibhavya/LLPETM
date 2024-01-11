@@ -65,6 +65,6 @@ MEOrder objects are also maintained as a doubly linked list of orders arranged a
       return ss.str();
     }
   };
-
+/* Represents a hash map, implemented through a std::array to represent a mapping from Price to MEOrdersAtPrice */
   typedef std::array<MEOrdersAtPrice *, ME_MAX_PRICE_LEVELS> OrdersAtPriceHashMap;
 }
