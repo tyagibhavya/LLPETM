@@ -64,6 +64,19 @@ public:
 /* (book) A Boolean run_ variable, which will be used to start and stop the OrderServer thread.
 Note that it is marked volatile since it will be accessed from different threads,
 and we want to prevent compiler optimizations here for correct functionality in a multi-threaded environment */
+
+/* (Functioning of run method)
+The run() method performs the following two main tasks:
+  > It calls the poll() method on the TCPServer object it holds.
+  Remember that the poll() method checks for and accepts new connections,
+  removes dead connections, and checks whether there is data available on
+  any of the established TCP connections, that is, client requests.
+  
+  > It also calls the sendAndRecv() method on the TCPServer object it holds.
+  The sendAndRecv() method reads the data from each of the TCP connections
+  and dispatches the callbacks for them. The sendAndRecv() call also sends out
+  any outgoing data on the TCP connections, that is, client responses.
+*/
     auto run() noexcept {
       logger_.log("%:% %() %\n", __FILE__, __LINE__, __FUNCTION__, Common::getCurrentTimeStr(&time_str_));
       while (run_) {
