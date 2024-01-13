@@ -22,6 +22,18 @@ namespace Exchange
         auto start() -> void;
         auto stop() -> void;
         
+        /*
+        noexcept : if the function throws an error, it isn't called
+        */
+        auto run() noexcept{
+            logger_.log("%:% %() %\n", __FILE__, __LINE__, __FUNCTION__, Common::getCurrentTimeStr(&time_str_));
+            while(run_){
+                const auto me_client_request = incoming_requests_ -> getNextToRead();
+                if(LIKELY(me_client_request)){
+                    
+                }
+            }
+        }
 
         MatchingEngine() = delete;
 
