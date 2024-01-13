@@ -43,6 +43,7 @@ on the interface and port that OrderServer was provided in the constructor. */
     ASSERT(Common::createAndStartThread(-1, "Exchange/OrderServer", [this]() { run(); }) != nullptr, "Failed to start OrderServer thread.");
   }
 
+/* stop() method will cause the run() method to finish execution */
   auto OrderServer::stop() -> void {
     run_ = false;
   }
