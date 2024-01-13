@@ -87,6 +87,10 @@ namespace Trading {
       moveOrder(ask_order, ticker_id, ask_price, Side::SELL, clip);
     }
 
+    /*
+    we must add a simple convenience function that we can use in our OrderManager implementation called 
+    getOMOrderSideHashMap(). This simply returns the OMOrderSideHashMap instance for the provided TickerId
+    */
     auto getOMOrderSideHashMap(TickerId ticker_id) const {
       return &(ticker_side_order_.at(ticker_id));
     }
@@ -103,13 +107,24 @@ namespace Trading {
     OrderManager &operator=(const OrderManager &&) = delete;
 
   private:
-    TradeEngine *trade_engine_ = nullptr;
-    const RiskManager& risk_manager_;
+    TradeEngine *trade_engine_ = nullptr; /* We will use this to store the parent TradeEngine instance that is using this order manager */
+    const RiskManager& risk_manager_; 
+    /*This will be used to perform pre-trade risk checks – that is, risk checks that are performed before 
+    new orders are sent out to the exchange*/
 
     std::string time_str_;
     Common::Logger *logger_ = nullptr;
 
     OMOrderTickerSideHashMap ticker_side_order_;
-    OrderId next_order_id_ = 1;
+    /*
+    to hold a pair (a buy and a sell) of OMOrder objects for each trading instrument. This will be used as a 
+    hash map that’s indexed first by the TickerId value of the instrument we want to send an order for and then 
+    indexed by the sideToIndex(Side::BUY) or sideToIndex(Side::SELL) values to manage the buy or sell order
+    */
+    OrderId next_order_id_ = 1; 
+    /*
+    New and unique order IDs starting from 1, which we will generate using a simple next_order_id_ variable 
+    of the OrderId type
+    */
   };
 }
