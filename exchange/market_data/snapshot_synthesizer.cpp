@@ -119,14 +119,41 @@ namespace Exchange {
     ASSERT(market_update->seq_num_ == last_inc_seq_num_ + 1, "Expected incremental seq_nums to increase.");
     last_inc_seq_num_ = market_update->seq_num_;
   }
-
+  /*
+  The below function is called whenever we want to publish a complete snapshot of the current state of the order book
+  */
   auto SnapshotSynthesizer::publishSnapshot() {
     size_t snapshot_size = 0;
+    /*
+    The first MDPMarketUpdate message is of the MarketUpdateType::SNAPSHOT_START type with seq_num_ = 0 to mark the 
+    beginning of the snapshot messages
+    
+    Then, for each instrument, we publish the following:
 
+    > A MDPMarketUpdate message of the MarketUpdateType::CLEAR type to instruct the client to clear their order book before applying the messages that follow
+    
+    > For each order that exists in the snapshot for this instrument, we publish a MDPMarketUpdate message with MarketUpdateType::ADD till we have published the information for all the orders
+    */
+
+    /*
+    Finally, we publish a MDPMarketUpdate message of the MarketUpdateType::SNAPSHOT_END type to mark the end of the snapshot messages. One thing to note is that for the SNAPSHOT_START and
+    SNAPSHOT_END messages, we set the OrderId value to be the last incremental sequence number that was used to construct this snapshot. The market participants will use this sequence number 
+    to synchronize the snapshot market data stream with the incremental market data stream.
+    */
+
+
+   /*
+   First, we publish the MarketUpdateType::SNAPSHOT_START message
+   */
     const MDPMarketUpdate start_market_update{snapshot_size++, {MarketUpdateType::SNAPSHOT_START, last_inc_seq_num_}};
     logger_.log("%:% %() % %\n", __FILE__, __LINE__, __FUNCTION__, getCurrentTimeStr(&time_str_), start_market_update.toString());
     snapshot_socket_.send(&start_market_update, sizeof(MDPMarketUpdate));
 
+
+  /* Now below,
+  We iterate through all the instruments that we will publish the snapshots for. The first thing we do is publish the 
+  MDPMarketUpdate message of the MarketUpdateType::CLEAR type for that instrument 
+  */
     for (size_t ticker_id = 0; ticker_id < ticker_orders_.size(); ++ticker_id) {
       const auto &orders = ticker_orders_.at(ticker_id);
 
@@ -138,6 +165,10 @@ namespace Exchange {
       logger_.log("%:% %() % %\n", __FILE__, __LINE__, __FUNCTION__, getCurrentTimeStr(&time_str_), clear_market_update.toString());
       snapshot_socket_.send(&clear_market_update, sizeof(MDPMarketUpdate));
 
+      /*
+      we iterate through all the orders for this trading instrument and check for live orders – entries that do not have nullptr values. 
+      For each valid order, we publish the MDPMarketUpdate message for that OrderId with MarketUpdateType::ADD
+      */
       for (const auto order: orders) {
         if (order) {
           const MDPMarketUpdate market_update{snapshot_size++, *order};
@@ -147,7 +178,11 @@ namespace Exchange {
         }
       }
     }
-
+     
+     /*
+     Finally, we publish the MDPMarketUpdate message with the MarketUpdateType::SNAPSHOT_END type to signify the end of the snapshot 
+     messages this round
+     */
     const MDPMarketUpdate end_market_update{snapshot_size++, {MarketUpdateType::SNAPSHOT_END, last_inc_seq_num_}};
     logger_.log("%:% %() % %\n", __FILE__, __LINE__, __FUNCTION__, getCurrentTimeStr(&time_str_), end_market_update.toString());
     snapshot_socket_.send(&end_market_update, sizeof(MDPMarketUpdate));
@@ -156,6 +191,15 @@ namespace Exchange {
     logger_.log("%:% %() % Published snapshot of % orders.\n", __FILE__, __LINE__, __FUNCTION__, getCurrentTimeStr(&time_str_), snapshot_size - 1);
   }
 
+  /*
+  SnapshotSynthesizer runs on its own thread separate from the MarketDataPublisher thread to not cause latencies on the component that 
+  publishes the incremental market data stream. The run() method is the method assigned to the SnapshotSynthesizer thread. The only task 
+  it performs is checking the snapshot_md_updates_ lock-free queue for new entries, which the MarketDataPublisher sends incremental 
+  MDPMarketUpdate messages on. For each incremental MDPMarketUpdate message it reads, it calls the addToSnapshot() method we built 
+  earlier. Additionally, it checks the last_snapshot_time_ variable against the current time obtained from getCurrentTime() to see whether 
+  a minute has elapsed. If at least a minute has elapsed since the last time a snapshot was published, it calls the publishSnapshot() 
+  method to publish a new snapshot. It also remembers the current time as the last time a full snapshot was published
+  */
   void SnapshotSynthesizer::run() {
     logger_.log("%:% %() %\n", __FILE__, __LINE__, __FUNCTION__, getCurrentTimeStr(&time_str_));
     while (run_) {
