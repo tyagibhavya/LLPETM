@@ -71,6 +71,24 @@ is canceled, an order is executed, or a cancel request is rejected by the matchi
     }
   };
 
+  /* Client response structure published over the network by the order server. */
+/*  The OMClientResponse structure is the public format
+that the market participants will use to receive and process order responses in. */
+  struct OMClientResponse {
+    size_t seq_num_ = 0;
+    MEClientResponse me_client_response_;
+
+    auto toString() const {
+      std::stringstream ss;
+      ss << "OMClientResponse"
+         << " ["
+         << "seq:" << seq_num_
+         << " " << me_client_response_.toString()
+         << "]";
+      return ss.str();
+    }
+  };
+
 #pragma pack(pop)
 
   typedef LFQueue<MEClientResponse> ClientResponseLFQueue;
