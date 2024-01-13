@@ -50,6 +50,20 @@ auto MarketDataConsumer::run() noexcept -> void {
   }
 
   /// Start the process of snapshot synchronization by subscribing to the snapshot multicast stream.
+
+/*
+ (PURPOSE) Prepares the MarketDataConsumer class to start the snapshot synchronization mechanism on sequence number gaps.
+ 
+ (PROCESS 1)  Clear the two std::map containers – snapshot_queued_msgs_ and incremental_queued_msgs_,
+              which we use to queue upmarket update messages from the snapshot and incremental streams.
+ 
+ (PROCESS 2)  Initialize the snapshot_mcast_socket_ object using the init() method so that 
+              the socket gets created for the snapshot_ip_ and snapshot_port_ address.
+
+ (PROCESS 3)  Call the McastSocket::join() method to start the multicast subscription for the snapshot market data stream.
+*/
+
+
   auto MarketDataConsumer::startSnapshotSync() -> void {
     snapshot_queued_msgs_.clear();
     incremental_queued_msgs_.clear();
@@ -61,7 +75,18 @@ auto MarketDataConsumer::run() noexcept -> void {
   }
 
   /// Check if a recovery / synchronization is possible from the queued up market data updates from the snapshot and incremental market data streams.
-  auto MarketDataConsumer::checkSnapshotSync() -> void {
+
+/*
+(MAIN IDEA)
+(1) Queue up messages received on the snapshot and incremental market data streams.
+(2) Make sure that no messages were dropped on the snapshot market data stream by checking
+    that there is no gap in the sequence number field on the snapshot message.
+(3) Check messages following the last message that was used to synthesize this round of snapshot messages.
+    We do this by checking if we have market updates in the incremental queue starting with a sequence number
+    equal to the OrderId + 1 value from the SNAPSHOT_END message in the
+*/
+
+auto MarketDataConsumer::checkSnapshotSync() -> void {
     if (snapshot_queued_msgs_.empty()) {
       return;
     }
@@ -161,7 +186,18 @@ auto MarketDataConsumer::run() noexcept -> void {
   }
 
   /// Queue up a message in the *_queued_msgs_ containers, first parameter specifies if this update came from the snapshot or the incremental streams.
-  auto MarketDataConsumer::queueMessage(bool is_snapshot, const Exchange::MDPMarketUpdate *request) {
+
+/*
+  It captures whether it was received from the snapshot stream or the incremental stream.
+  If the message came over the incremental market data stream, then it adds it to incremental_queued_msgs_ std::map.
+  If it is received over the snapshot stream, then first, it checks to see if a market update for that sequence number
+  already exists in the snapshot_queued_msgs_ container. If the entry for that sequence number already exists in 
+  the container, then that means that we are receiving a new snapshot messages cycle and we were not able to successfully
+  recover from the previous snapshot messages cycle. In this case, it clears the snapshot_queued_msgs_ container since
+  we will have to restart the snapshot recovery process from the beginning.
+*/
+
+auto MarketDataConsumer::queueMessage(bool is_snapshot, const Exchange::MDPMarketUpdate *request) {
     if (is_snapshot) {
       if (snapshot_queued_msgs_.find(request->seq_num_) != snapshot_queued_msgs_.end()) {
         logger_.log("%:% %() % Packet drops on snapshot socket. Received for a 2nd time:%\n", __FILE__, __LINE__, __FUNCTION__,
