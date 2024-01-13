@@ -20,6 +20,7 @@ namespace Exchange {
       orders.fill(nullptr);
   }
 
+
   SnapshotSynthesizer::~SnapshotSynthesizer() {
     stop();
   }
@@ -36,18 +37,43 @@ namespace Exchange {
   void SnapshotSynthesizer::stop() {
     run_ = false;
   }
-
+  /*
+  The process of synthesizing the snapshot of the order books for the different trading instruments is like building 
+  OrderBook. However, the difference here is that the snapshot synthesis process only needs to maintain the last state of the 
+  live orders, so it is a simpler container. The addToSnapshot() method we will build next receives an MDPMarketUpdate message 
+  every time there is a new incremental market data update provided to SnapshotSynthesizer
+  */
   auto SnapshotSynthesizer::addToSnapshot(const MDPMarketUpdate *market_update) {
     const auto &me_market_update = market_update->me_market_update_;
     auto *orders = &ticker_orders_.at(me_market_update.ticker_id_);
     switch (me_market_update.type_) {
+
+      /*
+      Above in the function so far,
+      we extract the MEMarketUpdate piece of the MDPMarketUpdate message and store it in the me_market_update variable. It also 
+      finds the std::array of MEMarketUpdate messages for the correct TickerId for this instrument from the ticker_orders_ 
+      std::array hash map. We then have a switch case on the type of MarketUpdateType and then handle each of those cases 
+      individually. Before we look at each of the cases under the switch case
+      */
       case MarketUpdateType::ADD: {
+
+        /*
+        To handle a MarketUpdateType::ADD message, we simply insert it into the MEMarketUpdate std::array at the correct 
+        OrderId location. We create a MEMarketUpdate message by allocating it from the order_pool_ memory pool using the allocate() 
+        call and passing it the MEMarketUpdate object to copy the fields from
+        */
         auto order = orders->at(me_market_update.order_id_);
         ASSERT(order == nullptr, "Received:" + me_market_update.toString() + " but order already exists:" + (order ? order->toString() : ""));
         orders->at(me_market_update.order_id_) = order_pool_.allocate(me_market_update);
       }
         break;
+
+
       case MarketUpdateType::MODIFY: {
+        /*
+        Similar to ADD ;
+        The minor difference here is that we just update the qty_ and price_ fields and leave the type_ field on the entry as is
+        */
         auto order = orders->at(me_market_update.order_id_);
         ASSERT(order != nullptr, "Received:" + me_market_update.toString() + " but order does not exist.");
         ASSERT(order->order_id_ == me_market_update.order_id_, "Expecting existing order to match new one.");
@@ -57,7 +83,13 @@ namespace Exchange {
         order->price_ = me_market_update.price_;
       }
         break;
+
+
       case MarketUpdateType::CANCEL: {
+        /*
+        Here, we find MEMarketUpdate in the hash map and call deallocate() on it. We also set the entry in the 
+        hash map style std::array to nullptr to mark it as canceled or a dead order
+        */
         auto order = orders->at(me_market_update.order_id_);
         ASSERT(order != nullptr, "Received:" + me_market_update.toString() + " but order does not exist.");
         ASSERT(order->order_id_ == me_market_update.order_id_, "Expecting existing order to match new one.");
@@ -67,6 +99,13 @@ namespace Exchange {
         orders->at(me_market_update.order_id_) = nullptr;
       }
         break;
+
+
+        /*
+        We do not need to do anything with the other enumeration values, so we ignore them. We just update 
+        the last sequence number we have seen on the incremental market data stream, which is stored 
+        in the last_inc_seq_num_ data members
+        */
       case MarketUpdateType::SNAPSHOT_START:
       case MarketUpdateType::CLEAR:
       case MarketUpdateType::SNAPSHOT_END:
@@ -74,6 +113,8 @@ namespace Exchange {
       case MarketUpdateType::INVALID:
         break;
     }
+
+
 
     ASSERT(market_update->seq_num_ == last_inc_seq_num_ + 1, "Expected incremental seq_nums to increase.");
     last_inc_seq_num_ = market_update->seq_num_;
