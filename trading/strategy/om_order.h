@@ -78,6 +78,16 @@ The DEAD state represents an order that does not exist – it has either not bee
     }
   };
 
+    /*
+    we define an OMOrderSideHashMap typedef to represent a std::array of OMOrder objects and indicate that the capacity 
+    of this array is large enough to hold an entry for the buy side and another for the sell side. Objects of the 
+    OMOrderSideHashMap type will be indexed by the sideToIndex(Side::BUY) and sideToIndex(Side::SELL) indices
+    */
   typedef std::array<OMOrder, sideToIndex(Side::MAX) + 1> OMOrderSideHashMap;
+
+  /*
+  We must also define an OMOrderTickerSideHashMap, which is just another std::array of this OMOrderSideHashMap object 
+  that’s large enough to hold all trading instruments – that is, of ME_MAX_TICKERS size
+  */
   typedef std::array<OMOrderSideHashMap, ME_MAX_TICKERS> OMOrderTickerSideHashMap;
 }
