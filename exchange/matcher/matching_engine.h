@@ -30,7 +30,7 @@ namespace Exchange
             while(run_){
                 const auto me_client_request = incoming_requests_ -> getNextToRead();
                 if(LIKELY(me_client_request)){
-                    
+                       
                 }
             }
         }
