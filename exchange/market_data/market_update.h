@@ -66,9 +66,29 @@ namespace Exchange {
     }
   };
 
-#pragma pack(pop)
+  /* 
+    Market update structure published over the network by the market data publisher.
+    MDPMarketUpdate is simply MEMarketUpdate with a leading seq_num_ field.
+  */
+  struct MDPMarketUpdate {
+    size_t seq_num_ = 0;
+    MEMarketUpdate me_market_update_;
 
+    auto toString() const {
+      std::stringstream ss;
+      ss << "MDPMarketUpdate"
+         << " ["
+         << " seq:" << seq_num_
+         << " " << me_market_update_.toString()
+         << "]";
+      return ss.str();
+    }
+  };
+
+#pragma pack(pop)
+   /* Lock free queues of matching engine market update messages and market data publisher market updates messages respectively.*/
   typedef Common::LFQueue<Exchange::MEMarketUpdate> MEMarketUpdateLFQueue;
+  typedef Common::LFQueue<Exchange::MDPMarketUpdate> MDPMarketUpdateLFQueue;
 }
 
     /*
