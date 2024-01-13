@@ -86,6 +86,8 @@ auto MarketDataConsumer::run() noexcept -> void {
     equal to the OrderId + 1 value from the SNAPSHOT_END message in the
 */
 
+/* WILL ADD PROPER WORKING LATER. */
+
 auto MarketDataConsumer::checkSnapshotSync() -> void {
     if (snapshot_queued_msgs_.empty()) {
       return;
