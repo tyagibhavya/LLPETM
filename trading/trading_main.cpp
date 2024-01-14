@@ -90,7 +90,9 @@ int main(int argc, char **argv) {
   order_gateway->start();
 
     /*
-    
+    Finally, we initialize and start the MarketDataConsumer component. It needs the IP and port information of the snapshot stream 
+    and the incremental stream on which the exchange’s MarketDataPublisher publishes market data. It also needs the 
+    market_updates LFQueue variable,
     */
   const std::string mkt_data_iface = "lo";
   const std::string snapshot_ip = "233.252.14.1";
@@ -102,30 +104,63 @@ int main(int argc, char **argv) {
   market_data_consumer = new Trading::MarketDataConsumer(client_id, &market_updates, mkt_data_iface, snapshot_ip, snapshot_port, incremental_ip, incremental_port);
   market_data_consumer->start();
 
+    /*
+    we are almost ready to start sending orders to the exchange; we just need to perform a few more minor tasks 
+    first. First, the main() application will sleep briefly so that the threads we just created and started in 
+    each of our components can run for a few seconds
+    */
   usleep(10 * 1000 * 1000);
-
+    /*
+    We will also initialize the first event time in TradeEngine by calling the TradeEngine::initLastEventTime() 
+    method. We intentionally delayed this member’s initialization until we were ready to start trading
+    */
   trade_engine->initLastEventTime();
 
   // For the random trading algorithm, we simply implement it here instead of creating a new trading algorithm which is another possibility.
   // Generate random orders with random attributes and randomly cancel some of them.
   if (algo_type == AlgoType::RANDOM) {
     Common::OrderId order_id = client_id * 1000;
+    /*
+    Since we send orders with a random price, quantity, and side in our current test setup, we will initialize a random 
+    reference price for each instrument, for which we will send orders. We will send orders with prices that are randomly distributed around this 
+    reference price value shortly. We do this purely so that different trading instruments have orders of slightly different 
+    and random prices. The random reference price for each instrument is held in the ticker_base_price variable. We will also 
+    create std::vector of MEClientRequest messages to store the order requests we send to the exchange. We will also send 
+    cancellations for some of these orders to exercise that functionality; hence, we will save them for when we try to cancel them
+    */
     std::vector<Exchange::MEClientRequest> client_requests_vec;
     std::array<Price, ME_MAX_TICKERS> ticker_base_price;
     for (size_t i = 0; i < ME_MAX_TICKERS; ++i)
       ticker_base_price[i] = (rand() % 100) + 100;
     for (size_t i = 0; i < 10000; ++i) {
+        /*
+        For 10000 iterations:
+        We will pick a random TickerId, generate a random Price close to the ticker_base_price reference price value 
+        for that instrument, generate a random Qty, and generate a random Side for the order we will send:
+        */
       const Common::TickerId ticker_id = rand() % Common::ME_MAX_TICKERS;
       const Price price = ticker_base_price[ticker_id] + (rand() % 10) + 1;
       const Qty qty = 1 + (rand() % 100) + 1;
       const Side side = (rand() % 2 ? Common::Side::BUY : Common::Side::SELL);
 
+        /*
+        We will create an MEClientRequest message of type ClientRequestType::NEW with these attributes and 
+        pass it along to TradeEngine using the sendClientRequest() method call. We will pause for sleep_time 
+        (20 microseconds) after we send the order request, and we will also save the MEClientRequest message 
+        we just sent out in the client_requests_vec container
+        */
       Exchange::MEClientRequest new_request{Exchange::ClientRequestType::NEW, client_id, ticker_id, order_id++, side,
                                             price, qty};
       trade_engine->sendClientRequest(&new_request);
       usleep(sleep_time);
 
       client_requests_vec.push_back(new_request);
+
+      /*
+      After the pause, we randomly pick a client request we sent from our container of client requests. 
+      We change the request type to ClientRequestType::CANCEL and send it through to TradeEngine. Then, we pause 
+      again and continue with the loop iteration
+      */
       const auto cxl_index = rand() % client_requests_vec.size();
       auto cxl_request = client_requests_vec[cxl_index];
       cxl_request.type_ = Exchange::ClientRequestType::CANCEL;
@@ -141,6 +176,7 @@ int main(int argc, char **argv) {
     }
   }
 
+
   while (trade_engine->silentSeconds() < 60) {
     logger->log("%:% %() % Waiting till no activity, been silent for % seconds...\n", __FILE__, __LINE__, __FUNCTION__,
                 Common::getCurrentTimeStr(&time_str), trade_engine->silentSeconds());
@@ -149,6 +185,10 @@ int main(int argc, char **argv) {
     std::this_thread::sleep_for(30s);
   }
 
+    /*
+    After a period of inactivity, this application exits. We first stop each of our 
+    components and pause for a brief period, before de-initializing and exiting the application:
+    */
   trade_engine->stop();
   market_data_consumer->stop();
   order_gateway->stop();
