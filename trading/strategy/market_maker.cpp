@@ -35,6 +35,8 @@ namespace Trading
         {
             onOrderBookUpdate(ticker_id, price, side, book);
         };
+
+       
         trade_engine->algoOnTradeUpdate_ = [this](auto market_update, auto book)
         { onTradeUpdate(market_update, book); };
         trade_engine->algoOnOrderUpdate_ = [this](auto client_response)
