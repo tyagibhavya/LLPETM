@@ -134,6 +134,22 @@ namespace Common {
     return "UNKNOWN";
   }
 
+  /*
+  The below function parses a string and converts it into an AlgoType enumeration value. It does this
+  by iterating through all the possible AlgoType enumeration values and comparing the 
+  string argument against the output of algoTypeToString(), called on that AlgoType enumeration value. 
+  If the string representations match, then it returns the algo_type enumeration
+  */
+  inline auto stringToAlgoType(const std::string &str) -> AlgoType {
+    for (auto i = static_cast<int>(AlgoType::INVALID); i <= static_cast<int>(AlgoType::MAX); ++i) {
+      const auto algo_type = static_cast<AlgoType>(i);
+      if (algoTypeToString(algo_type) == str)
+        return algo_type;
+    }
+
+    return AlgoType::INVALID;
+  }
+
   inline auto sideToString(Side side) -> std::string {
     switch (side) {
       case Side::BUY:
