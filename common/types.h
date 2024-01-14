@@ -1,5 +1,5 @@
 #pragma once
-//Commenting changes
+
 #include <cstdint>
 #include <limits>
 
@@ -103,6 +103,36 @@ namespace Common {
     BUY = 1,
     SELL = -1
   };
+  /*
+  enum class for the type of trading algo
+  */
+   enum class AlgoType : int8_t {
+    INVALID = 0,
+    RANDOM = 1,
+    MAKER = 2,
+    TAKER = 3,
+    MAX = 4
+  };
+
+  /*
+  tostring method for AlgoType
+  */
+  inline auto algoTypeToString(AlgoType type) -> std::string {
+    switch (type) {
+      case AlgoType::RANDOM:
+        return "RANDOM";
+      case AlgoType::MAKER:
+        return "MAKER";
+      case AlgoType::TAKER:
+        return "TAKER";
+      case AlgoType::INVALID:
+        return "INVALID";
+      case AlgoType::MAX:
+        return "MAX";
+    }
+
+    return "UNKNOWN";
+  }
 
   inline auto sideToString(Side side) -> std::string {
     switch (side) {
