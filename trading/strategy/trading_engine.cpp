@@ -141,6 +141,13 @@ namespace Trading {
 
   /// Process changes to the order book - updates the position keeper, feature engine and informs the trading algorithm about the update.
   auto TradeEngine::onOrderBookUpdate(TickerId ticker_id, Price price, Side side, MarketOrderBook *book) noexcept -> void {
+    /*
+    First, it fetches BBO from MarketOrderBook, which it receives in the method’s arguments by calling the MarketOrderBook::getBBO() 
+    method. It provides the updated BBO to the position_keeper_ and feature_engine_ data members. For the 
+    FeatureEngine member, it calls the FeatureEngine::onOrderBookUpdate() method to notify the feature engine to 
+    update its feature values. The method also needs to call algoOnOrderBookUpdate_() so that the trading strategy can 
+    receive the notification about the order book update:
+    */
     logger_.log("%:% %() % ticker:% price:% side:%\n", __FILE__, __LINE__, __FUNCTION__,
                 Common::getCurrentTimeStr(&time_str_), ticker_id, Common::priceToString(price).c_str(),
                 Common::sideToString(side).c_str());
@@ -156,6 +163,13 @@ namespace Trading {
 
   /// Process trade events - updates the  feature engine and informs the trading algorithm about the trade event.
   auto TradeEngine::onTradeUpdate(const Exchange::MEMarketUpdate *market_update, MarketOrderBook *book) noexcept -> void {
+    /*
+    The TradeEngine::onTradeUpdate() method that is called on trade events also performs a couple of tasks, which are 
+    like the ones in the onOrderBookUpdate() method we just saw. It passes the trade event to FeatureEngine by calling 
+    the onTradeUpdate() method so that the feature engine can update the features it computes. It also passes the trade 
+    event to the trading strategy by invoking the algoOnTradeUpdate_() std::function member:
+    */
+    
     logger_.log("%:% %() % %\n", __FILE__, __LINE__, __FUNCTION__, Common::getCurrentTimeStr(&time_str_),
                 market_update->toString().c_str());
 
@@ -166,6 +180,12 @@ namespace Trading {
 
   /// Process client responses - updates the position keeper and informs the trading algorithm about the response.
   auto TradeEngine::onOrderUpdate(const Exchange::MEClientResponse *client_response) noexcept -> void {
+    /*
+    It checks whether MEClientResponse corresponds to an execution (ClientResponseType::FILLED) and calls 
+    the PositionKeeper::addFill() method to update the position and PnLs. It also invokes the algoOnOrderUpdate_() 
+    std::function member so that the trading strategy can process the MEClientResponse
+    */
+    
     logger_.log("%:% %() % %\n", __FILE__, __LINE__, __FUNCTION__, Common::getCurrentTimeStr(&time_str_),
                 client_response->toString().c_str());
 
