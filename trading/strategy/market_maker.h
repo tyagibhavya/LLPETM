@@ -91,8 +91,14 @@ namespace Trading
         }
 
         /// Process client responses for the strategy's orders.
+
+
         auto onOrderUpdate(const Exchange::MEClientResponse *client_response) noexcept -> void
-        {
+        {   /*
+            The handling of order updates for the MarketMaker trading algorithm’s orders is simple; it simply 
+            forwards the MEClientResponse messages to the order_manager_ member it uses to manage orders. This 
+            is achieved by calling the OrderManager::onOrderUpdate() method, which we implemented previously
+            */
             logger_->log("%:% %() % %\n", __FILE__, __LINE__, __FUNCTION__, Common::getCurrentTimeStr(&time_str_),
                          client_response->toString().c_str());
 
