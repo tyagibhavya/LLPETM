@@ -88,6 +88,12 @@ namespace Trading {
   }
 
   /// Write a client request to the lock free queue for the order server to consume and send to the exchange.
+
+  /*
+  The sendClientRequest() method in the trading engine framework is extremely simple. It receives a MEClientRequest 
+  object and simply writes it to the outgoing_ogw_requests_ lock-free queue so that the OrderGateway component can 
+  pick this up and send it out to the trading exchange
+  */
   auto TradeEngine::sendClientRequest(const Exchange::MEClientRequest *client_request) noexcept -> void {
     logger_.log("%:% %() % Sending %\n", __FILE__, __LINE__, __FUNCTION__, Common::getCurrentTimeStr(&time_str_),
                 client_request->toString().c_str());
@@ -97,6 +103,12 @@ namespace Trading {
   }
 
   /// Main loop for this thread - processes incoming client responses and market data updates which in turn may generate client requests.
+  /*
+    The main thread for TradeEngine executes the run() method, which simply checks the incoming data LFQueue and reads and processes any 
+    available updates.
+    First, we check and drain the incoming_ogw_responses_ queue. For each MEClientResponse message we read here, we call the 
+    TradeEngine::onOrderUpdate() method and pass the response message from OrderGateway to it
+  */
   auto TradeEngine::run() noexcept -> void {
     logger_.log("%:% %() %\n", __FILE__, __LINE__, __FUNCTION__, Common::getCurrentTimeStr(&time_str_));
     while (run_) {
@@ -107,7 +119,10 @@ namespace Trading {
         incoming_ogw_responses_->updateReadIndex();
         last_event_time_ = Common::getCurrentNanos();
       }
-
+        /*
+        We perform a similar task with the incoming_md_updates_ lock-free queue. We read any available MEMarketUpdate messages and pass 
+        them to the correct MarketOrderBook instance by calling the MarketOrderBook::onMarketUpdate() method and passing the market update to it
+        */
       for (auto market_update = incoming_md_updates_->getNextToRead(); market_update; market_update = incoming_md_updates_->getNextToRead()) {
         logger_.log("%:% %() % Processing %\n", __FILE__, __LINE__, __FUNCTION__, Common::getCurrentTimeStr(&time_str_),
                     market_update->toString().c_str());
@@ -118,6 +133,10 @@ namespace Trading {
         last_event_time_ = Common::getCurrentNanos();
       }
     }
+    /*
+    Note that in both of the preceding code blocks, when we successfully read and dispatch a market data update or an order 
+    response, we update the last_event_time_ variable to track the time of the event
+    */
   }
 
   /// Process changes to the order book - updates the position keeper, feature engine and informs the trading algorithm about the update.
