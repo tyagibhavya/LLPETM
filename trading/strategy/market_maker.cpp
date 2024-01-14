@@ -26,6 +26,11 @@ namespace Trading
         : feature_engine_(feature_engine), order_manager_(order_manager), logger_(logger),
           ticker_cfg_(ticker_cfg)
     {
+        /*
+        we will override the TradeEngine: :algoOnOrderBookUpdate(), TradeEngine::algoOnTradeUpdate(), and 
+        TradeEngine::algoOnOrderUpdate() methods using lambda methods to forward them to the MarketMaker::onOrderBookUpdate(), 
+        MarketMaker::onTradeUpdate(), and MarketMaker::onOrderUpdate() methods, respectively
+        */
         trade_engine->algoOnOrderBookUpdate_ = [this](auto ticker_id, auto price, auto side, auto book)
         {
             onOrderBookUpdate(ticker_id, price, side, book);
