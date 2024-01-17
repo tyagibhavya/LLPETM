@@ -1,7 +1,11 @@
 # The script runs multiple instances of the trading program with different 
 # parameters concurrently. Adjust parameters as needed and ensure correct binary paths.
 
-
+# In this script, the 1 and 2 client IDs are MM trading algorithms, the 3 and 4 client IDs 
+# are liquidity taking trading algorithms, and the last client ID, 5, is a random trading algorithm. The 
+# random trading algorithm instance exists to simulate all trades made by the rest of the market 
+# participants for any reason. We do this because, in our ecosystem, we only run five trading clients 
+# (due to limited resources on our workstation).
 #!/bin/bash
 
 # ./trading_main CLIENT_ID ALGO_TYPE [CLIP_1 THRESH_1 MAX_ORDER_SIZE_1 MAX_POS_1 MAX_LOSS_1] [CLIP_2 THRESH_2 MAX_ORDER_SIZE_2 MAX_POS_2 MAX_LOSS_2] ...
