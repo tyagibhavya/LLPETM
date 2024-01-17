@@ -3,7 +3,7 @@ Not yet read
 */
 
 #pragma once
-
+#include<string>
 #include <chrono>
 #include <ctime>
 
