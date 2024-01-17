@@ -16,7 +16,7 @@ namespace Exchange
 
     class MatchingEngine final
     {
-         private:
+    private:
         OrderBookHashMap ticker_order_book_;
         ClientRequestLFQueue *incoming_requests_ = nullptr;
         ClientResponseLFQueue *outgoing_ogw_responses_ = nullptr;
@@ -50,22 +50,26 @@ namespace Exchange
         */
         std::string time_str_;
         Logger logger_;
+
     public:
         MatchingEngine(ClientRequestLFQueue *client_requests,
-                   ClientResponseLFQueue *client_responses,
-                   MEMarketUpdateLFQueue *market_updates);
+                       ClientResponseLFQueue *client_responses,
+                       MEMarketUpdateLFQueue *market_updates);
         ~MatchingEngine();
         auto start() -> void;
         auto stop() -> void;
-        
+
         /*
         noexcept : if the function throws an error, it isn't called
         */
-        auto run() noexcept{
-      logger_.log("%:% %() %\n", __FILE__, __LINE__, __FUNCTION__, Common::getCurrentTimeStr(&time_str_));
-            while(run_){
-                const auto me_client_request = incoming_requests_ -> getNextToRead();
-                if(LIKELY(me_client_request)){
+        auto run() noexcept
+        {
+            logger_.log("%:% %() %\n", __FILE__, __LINE__, __FUNCTION__, Common::getCurrentTimeStr(&time_str_));
+            while (run_)
+            {
+                const auto me_client_request = incoming_requests_->getNextToRead();
+                if (LIKELY(me_client_request))
+                {
                     logger_.log("%:% %() % Processing %\n", __FILE__, __LINE__, __FUNCTION__, Common::getCurrentTimeStr(&time_str_), me_client_request->toString());
                     processClientRequest(me_client_request);
                     incoming_requests_->updateReadIndex();
@@ -74,62 +78,68 @@ namespace Exchange
         }
 
         /*
-        processClientRequest is a dispatcher function that determines the appropriate action to take based on the type 
+        processClientRequest is a dispatcher function that determines the appropriate action to take based on the type
         of client request (new order or order cancellation) and delegates the execution of that action to the corresponding
         order book. If an invalid client request type is encountered, it logs a fatal error.
         */
-        auto processClientRequest(const MEClientRequest * client_request) noexcept{
-            auto order_book = ticker_order_book_[client_request->ticker_id_] ;
+        auto processClientRequest(const MEClientRequest *client_request) noexcept
+        {
+            auto order_book = ticker_order_book_[client_request->ticker_id_];
             /*
-            It retrieves the order book associated with the provided ticker_id_. The ticker_order_book_ 
-            is assumed to be some kind of mapping or array holding order books for different financial 
+            It retrieves the order book associated with the provided ticker_id_. The ticker_order_book_
+            is assumed to be some kind of mapping or array holding order books for different financial
             instruments
             */
 
             switch (client_request->type_)
             {
-                case ClientRequestType::NEW:{
-                    order_book->add(client_request->client_id_, client_request->order_id_, client_request->ticker_id_, client_request->side_, client_request->side_, client_request->qty_) ;
-                }
-                break;
+            case ClientRequestType::NEW:
+            {
+                order_book->add(client_request->client_id_, client_request->order_id_, client_request->ticker_id_,
+                                client_request->side_, client_request->price_, client_request->qty_);
+            }
+            break;
                 /*
-                In the absence of break statements, the control flow would "fall through" to the next case. 
-                The break statements are crucial here because they prevent this fall-through behavior. They 
-                ensure that only the code block associated with the matched case is executed, and the control 
-                flow exits the switch statement. The break statements also prevent unnecessary execution of 
+                In the absence of break statements, the control flow would "fall through" to the next case.
+                The break statements are crucial here because they prevent this fall-through behavior. They
+                ensure that only the code block associated with the matched case is executed, and the control
+                flow exits the switch statement. The break statements also prevent unnecessary execution of
                 subsequent cases, improving the efficiency of the code.
                 */
 
-                case ClientRequestType::CANCEL:{
-                    order_book->cancel(client_request->client_id_, client_request->order_id_, client_request->ticker_id_);
-                }
-                break;
-                default: {
-                    FATAL("Received invalid client-request-type : " + clientRequestTypeToString(client_request->type_)) ;
-                }
-                break ;
+            case ClientRequestType::CANCEL:
+            {
+                order_book->cancel(client_request->client_id_, client_request->order_id_, client_request->ticker_id_);
             }
-            
+            break;
+            default:
+            {
+                FATAL("Received invalid client-request-type : " + clientRequestTypeToString(client_request->type_));
+            }
+            break;
+            }
         }
 
         /*
-        We will also define a method in the same class that the limit order book will use to publish order responses through MEClientResponse 
-        messages. This simply writes the response to the outgoing_ogw_responses_ lock-free queue and advances the writer index. 
+        We will also define a method in the same class that the limit order book will use to publish order responses through MEClientResponse
+        messages. This simply writes the response to the outgoing_ogw_responses_ lock-free queue and advances the writer index.
         It does that by finding the next valid index to write the MEClientResponse message to by calling the LFQueue::getNextToWriteTo() method
         , moving the data into that slot, and updating the next write index by calling the LFQueue::updateWriteIndex() method:
         */
-        auto sendClientResponse(const MEClientResponse *client_response) noexcept {
+        auto sendClientResponse(const MEClientResponse *client_response) noexcept
+        {
             logger_.log("%:% %() % Sending %\n", __FILE__, __LINE__, __FUNCTION__, Common::getCurrentTimeStr(&time_str_), client_response->toString());
             auto next_write = outgoing_ogw_responses_->getNextToWriteTo();
             *next_write = std::move(*client_response);
             outgoing_ogw_responses_->updateWriteIndex();
         }
         /*
-        The sendMarketUpdate() method is used by the limit order book to publish market data updates through the MEMarketUpdate structure. It 
-        simply writes to the outgoing_md_updates_ lock-free queue and advances the writer. It does this exactly the same way we saw before – by 
+        The sendMarketUpdate() method is used by the limit order book to publish market data updates through the MEMarketUpdate structure. It
+        simply writes to the outgoing_md_updates_ lock-free queue and advances the writer. It does this exactly the same way we saw before – by
         calling the getNextToWriteTo() method, writing the MEMarketUpdate message to that slot, and updating the next write index using updateWriteIndex()
         */
-        auto sendMarketUpdate(const MEMarketUpdate *market_update) noexcept {
+        auto sendMarketUpdate(const MEMarketUpdate *market_update) noexcept
+        {
             logger_.log("%:% %() % Sending %\n", __FILE__, __LINE__, __FUNCTION__, Common::getCurrentTimeStr(&time_str_), market_update->toString());
             auto next_write = outgoing_md_updates_->getNextToWriteTo();
             *next_write = *market_update;
@@ -152,7 +162,5 @@ namespace Exchange
 
         MatchingEngine &operator=(const MatchingEngine &) = delete;
         MatchingEngine &operator=(const MatchingEngine &&) = delete;
-
-   
     };
 }
