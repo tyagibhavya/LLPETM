@@ -6,7 +6,9 @@ Not yet read
 
 #include <cstdint>
 #include <vector>
+#include <string>
 
+#include "macros.h"
 namespace Common {
   template<typename T>
   class MemPool final {
