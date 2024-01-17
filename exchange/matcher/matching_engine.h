@@ -59,23 +59,7 @@ namespace Exchange
         auto start() -> void;
         auto stop() -> void;
 
-        /*
-        noexcept : if the function throws an error, it isn't called
-        */
-        auto run() noexcept
-        {
-            logger_.log("%:% %() %\n", __FILE__, __LINE__, __FUNCTION__, Common::getCurrentTimeStr(&time_str_));
-            while (run_)
-            {
-                const auto me_client_request = incoming_requests_->getNextToRead();
-                if (LIKELY(me_client_request))
-                {
-                    logger_.log("%:% %() % Processing %\n", __FILE__, __LINE__, __FUNCTION__, Common::getCurrentTimeStr(&time_str_), me_client_request->toString());
-                    processClientRequest(me_client_request);
-                    incoming_requests_->updateReadIndex();
-                }
-            }
-        }
+        
 
         /*
         processClientRequest is a dispatcher function that determines the appropriate action to take based on the type
@@ -145,7 +129,23 @@ namespace Exchange
             *next_write = *market_update;
             outgoing_md_updates_->updateWriteIndex();
         }
-
+        /*
+        noexcept : if the function throws an error, it isn't called
+        */
+        auto run() noexcept
+        {
+            logger_.log("%:% %() %\n", __FILE__, __LINE__, __FUNCTION__, Common::getCurrentTimeStr(&time_str_));
+            while (run_)
+            {
+                const auto me_client_request = incoming_requests_->getNextToRead();
+                if (LIKELY(me_client_request))
+                {
+                    logger_.log("%:% %() % Processing %\n", __FILE__, __LINE__, __FUNCTION__, Common::getCurrentTimeStr(&time_str_), me_client_request->toString());
+                    processClientRequest(me_client_request);
+                    incoming_requests_->updateReadIndex();
+                }
+            }
+        }
         MatchingEngine() = delete;
 
         /*Copy constructor disabled*/
