@@ -51,8 +51,9 @@ namespace Exchange
         std::string time_str_;
         Logger logger_;
     public:
-        MatchingEngine(ClientLFQueue *client_requests,
-                       ClientLFQueue *client_responses, MEMarketUpdateLFQueue *market_updates);
+        MatchingEngine(ClientRequestLFQueue *client_requests,
+                   ClientResponseLFQueue *client_responses,
+                   MEMarketUpdateLFQueue *market_updates);
         ~MatchingEngine();
         auto start() -> void;
         auto stop() -> void;
