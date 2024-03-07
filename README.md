@@ -33,7 +33,7 @@ To get started with the Low Latency Electronic Trading Machine, please refer to 
 Feel free to explore the codebase, and don't hesitate to reach out for any inquiries or contributions.
 
 ## Contributors
-We welcome contributions from the community! If you're interested in contributing, please reach out to us at adityab1729@gmail.com or bhavya.tyagi.21063@iitgoa.ac.in
+We welcome contributions from the community! If you're interested in contributing, please reach out to us at adityab1729@gmail.com or bhavya3001@gmail.com
 
 
 Happy learning! 😉😉
